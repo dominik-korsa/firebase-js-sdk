@@ -82,6 +82,7 @@ import { browserLocalPersistence } from './core/persistence/browser_local';
 import { browserSessionPersistence } from './core/persistence/browser_session';
 import { inMemoryPersistence } from './core/persistence/in_memory';
 import { indexedDBLocalPersistence } from './core/persistence/indexed_db';
+import { signInWithCustomToken } from './core/strategies/custom_token';
 
 interface FirebaseAuth extends Auth {}
 interface UserCredential {
@@ -242,6 +243,9 @@ enum Persistence {
       password: string
     ): Promise<UserCredential> {
       return signInWithEmailAndPassword(auth, email, password);
+    },
+    signInWithCustomToken(token: string): Promise<UserCredential> {
+      return signInWithCustomToken(auth, token);
     },
     signInWithEmailLink(
       email: string,

@@ -15,33 +15,17 @@
  * limitations under the License.
  */
 
-/**
- * Supported providers
- */
-export enum ProviderId {
-  ANONYMOUS = 'anonymous',
-  CUSTOM = 'custom',
-  FACEBOOK = 'facebook.com',
-  FIREBASE = 'firebase',
-  GITHUB = 'github.com',
-  GOOGLE = 'google.com',
-  PASSWORD = 'password',
-  PHONE = 'phone',
-  TWITTER = 'twitter.com'
-}
+import { Auth } from '../..';
+import { UserCredential } from '../../model/user_credential';
+import { signInWithCredential } from './auth_credential';
+import { CustomTokenProvider } from '../providers/custom_token';
 
-export enum SignInMethod {
-  ANONYMOUS = 'anonymous',
-  CUSTOM = 'custom',
-  EMAIL_LINK = 'emailLink',
-  EMAIL_PASSWORD = 'password',
-  FACEBOOK = 'facebook.com',
-  GITHUB = 'github.com',
-  GOOGLE = 'google.com',
-  PHONE = 'phone',
-  TWITTER = 'twitter.com'
-}
-
-export interface AuthProvider {
-  readonly providerId: ProviderId;
+export async function signInWithCustomToken(
+  auth: Auth,
+  customToken: string
+): Promise<UserCredential> {
+  return signInWithCredential(
+    auth,
+    CustomTokenProvider.credential(customToken)
+  );
 }
