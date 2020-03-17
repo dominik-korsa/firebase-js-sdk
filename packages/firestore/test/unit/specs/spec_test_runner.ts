@@ -109,6 +109,10 @@ import {
 } from '../local/persistence_test_helpers';
 import { MULTI_CLIENT_TAG } from './describe_spec';
 import { ByteString } from '../../../src/util/byte_string';
+import {
+  normalizeByteString,
+  ProtoTimestampValue
+} from '../../../src/model/values';
 
 const ARBITRARY_SEQUENCE_NUMBER = 2;
 
@@ -196,7 +200,10 @@ class MockConnection implements Connection {
     return this.watchOpen.promise;
   }
 
-  ackWrite(commitTime?: string, mutationResults?: api.WriteResult[]): void {
+  ackWrite(
+    commitTime?: ProtoTimestampValue,
+    mutationResults?: api.WriteResult[]
+  ): void {
     this.writeStream!.callOnMessage({
       // Convert to base64 string so it can later be parsed into ByteString.
       streamToken: PlatformSupport.getPlatform().btoa(
@@ -1154,7 +1161,9 @@ abstract class TestRunner {
       // actualTarget's resumeToken is a string, but the serialized
       // resumeToken will be a base64 string, so we need to convert it back.
       expect(actualTarget.resumeToken || '').to.equal(
-        this.platform.atob(expectedTarget.resumeToken || '')
+        this.platform.atob(
+          normalizeByteString(expectedTarget.resumeToken).toBase64()
+        )
       );
       delete actualTargets[targetId];
     });

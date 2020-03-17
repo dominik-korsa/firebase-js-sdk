@@ -30,6 +30,7 @@ import { loadProtos } from './load_protos';
 
 export class NodePlatform implements Platform {
   readonly base64Available = true;
+  readonly usesProto3Json = false;
 
   readonly document = null;
 

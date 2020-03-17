@@ -25,7 +25,7 @@ import { Persistence } from '../local/persistence';
 import { Document, MaybeDocument, NoDocument } from '../model/document';
 import { DocumentKey } from '../model/document_key';
 import { Mutation } from '../model/mutation';
-import { Platform } from '../platform/platform';
+import { Platform, PlatformSupport } from '../platform/platform';
 import { Datastore } from '../remote/datastore';
 import { RemoteStore } from '../remote/remote_store';
 import { JsonProtoSerializer } from '../remote/serializer';
@@ -327,9 +327,8 @@ export class FirestoreClient {
     const persistenceKey = IndexedDbPersistence.buildStoragePrefix(
       this.databaseInfo
     );
-    // Opt to use proto3 JSON in case the platform doesn't support Uint8Array.
     const serializer = new JsonProtoSerializer(this.databaseInfo.databaseId, {
-      useProto3Json: true
+      useProto3Json: PlatformSupport.getPlatform().usesProto3Json
     });
 
     return Promise.resolve().then(async () => {

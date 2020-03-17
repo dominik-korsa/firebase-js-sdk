@@ -48,6 +48,7 @@ import { PersistencePromise } from './persistence_promise';
 import { ReferenceSet } from './reference_set';
 import { ClientId } from './shared_client_state';
 import { TargetData } from './target_data';
+import { estimateByteSize } from '../model/values';
 
 const LOG_TAG = 'MemoryPersistence';
 
@@ -469,7 +470,7 @@ export class MemoryLruDelegate implements ReferenceDelegate, LruDelegate {
   documentSize(maybeDoc: MaybeDocument): number {
     let documentSize = maybeDoc.key.toString().length;
     if (maybeDoc instanceof Document) {
-      documentSize += maybeDoc.data().approximateByteSize();
+      documentSize += estimateByteSize(maybeDoc.data().toProto());
     }
     return documentSize;
   }

@@ -17,24 +17,11 @@
 
 import * as firestore from '@firebase/firestore-types';
 
-import { Timestamp } from '../api/timestamp';
+import * as api from '../protos/firestore_proto_api';
+
+import { Timestamp } from './timestamp';
 import { DatabaseId } from '../core/database_info';
 import { DocumentKey } from '../model/document_key';
-import {
-  FieldValue,
-  NumberValue,
-  ObjectValue,
-  ArrayValue,
-  BlobValue,
-  BooleanValue,
-  DoubleValue,
-  GeoPointValue,
-  IntegerValue,
-  NullValue,
-  RefValue,
-  StringValue,
-  TimestampValue
-} from '../model/field_value';
 
 import {
   FieldMask,
@@ -49,10 +36,7 @@ import { FieldPath } from '../model/path';
 import { assert, fail } from '../util/assert';
 import { Code, FirestoreError } from '../util/error';
 import { isPlainObject, valueDescription } from '../util/input_validation';
-import { primitiveComparator } from '../util/misc';
 import { Dict, forEach, isEmpty } from '../util/obj';
-import { SortedMap } from '../util/sorted_map';
-import * as typeUtils from '../util/types';
 
 import {
   ArrayRemoveTransformOperation,
@@ -75,6 +59,8 @@ import {
   ServerTimestampFieldValueImpl
 } from './field_value';
 import { GeoPoint } from './geo_point';
+import { ObjectValue } from '../model/field_value';
+import { JsonProtoSerializer } from '../remote/serializer';
 
 const RESERVED_FIELD_REGEX = /^__.*__$/;
 
@@ -313,7 +299,10 @@ export class DocumentKeyReference {
  * classes.
  */
 export class UserDataReader {
-  constructor(private preConverter: DataPreConverter) {}
+  constructor(
+    private readonly serializer: JsonProtoSerializer,
+    private readonly preConverter: DataPreConverter
+  ) {}
 
   /** Parse document data from a non-merge set() call. */
   parseSetData(methodName: string, input: unknown): ParsedSetData {
@@ -323,11 +312,10 @@ export class UserDataReader {
       FieldPath.EMPTY_PATH
     );
     validatePlainObject('Data must be an object, but it was:', context, input);
-
-    const updateData = this.parseData(input, context);
+    const updateData = this.parseData(input, context)!;
 
     return new ParsedSetData(
-      updateData as ObjectValue,
+      new ObjectValue(updateData),
       /* fieldMask= */ null,
       context.fieldTransforms
     );
@@ -345,8 +333,8 @@ export class UserDataReader {
       FieldPath.EMPTY_PATH
     );
     validatePlainObject('Data must be an object, but it was:', context, input);
+    const updateData = this.parseData(input, context)!;
 
-    const updateData = this.parseData(input, context) as ObjectValue;
     let fieldMask: FieldMask;
     let fieldTransforms: FieldTransform[];
 
@@ -388,7 +376,7 @@ export class UserDataReader {
       );
     }
     return new ParsedSetData(
-      updateData as ObjectValue,
+      new ObjectValue(updateData),
       fieldMask,
       fieldTransforms
     );
@@ -501,7 +489,7 @@ export class UserDataReader {
     methodName: string,
     input: unknown,
     allowArrays = false
-  ): FieldValue {
+  ): api.Value {
     const context = new ParseContext(
       allowArrays ? UserDataSource.ArrayArgument : UserDataSource.Argument,
       methodName,
@@ -535,7 +523,7 @@ export class UserDataReader {
    * @return The parsed value, or null if the value was a FieldValue sentinel
    * that should not be included in the resulting parsed data.
    */
-  private parseData(input: unknown, context: ParseContext): FieldValue | null {
+  private parseData(input: unknown, context: ParseContext): api.Value | null {
     input = this.runPreConverter(input, context);
     if (looksLikeJsonObject(input)) {
       validatePlainObject('Unsupported field value:', context, input);
@@ -575,8 +563,8 @@ export class UserDataReader {
     }
   }
 
-  private parseObject(obj: Dict<unknown>, context: ParseContext): FieldValue {
-    let result = new SortedMap<string, FieldValue>(primitiveComparator);
+  private parseObject(obj: Dict<unknown>, context: ParseContext): api.Value {
+    const fields: Dict<api.Value> = {};
 
     if (isEmpty(obj)) {
       // If we encounter an empty object, we explicitly add it to the update
@@ -591,16 +579,16 @@ export class UserDataReader {
           context.childContextForField(key)
         );
         if (parsedValue != null) {
-          result = result.insert(key, parsedValue);
+          fields[key] = parsedValue;
         }
       });
     }
 
-    return new ObjectValue(result);
+    return { mapValue: { fields } };
   }
 
-  private parseArray(array: unknown[], context: ParseContext): FieldValue {
-    const result = [] as FieldValue[];
+  private parseArray(array: unknown[], context: ParseContext): api.Value {
+    const values: api.Value[] = [];
     let entryIndex = 0;
     for (const entry of array) {
       let parsedEntry = this.parseData(
@@ -610,12 +598,12 @@ export class UserDataReader {
       if (parsedEntry == null) {
         // Just include nulls in the array for fields being replaced with a
         // sentinel.
-        parsedEntry = NullValue.INSTANCE;
+        parsedEntry = { nullValue: 'NULL_VALUE' };
       }
-      result.push(parsedEntry);
+      values.push(parsedEntry);
       entryIndex++;
     }
-    return new ArrayValue(result);
+    return { arrayValue: { values } };
   }
 
   /**
@@ -686,8 +674,11 @@ export class UserDataReader {
       const operand = this.parseQueryValue(
         'FieldValue.increment',
         value._operand
-      ) as NumberValue;
-      const numericIncrement = new NumericIncrementTransformOperation(operand);
+      );
+      const numericIncrement = new NumericIncrementTransformOperation(
+        this.serializer,
+        operand
+      );
       context.fieldTransforms.push(
         new FieldTransform(context.path, numericIncrement)
       );
@@ -701,40 +692,46 @@ export class UserDataReader {
    *
    * @return The parsed value
    */
-  private parseScalarValue(value: unknown, context: ParseContext): FieldValue {
-    if (value === null) {
-      return NullValue.INSTANCE;
-    } else if (typeof value === 'number') {
-      if (typeUtils.isSafeInteger(value)) {
-        return new IntegerValue(value);
-      } else {
-        return new DoubleValue(value);
-      }
-    } else if (typeof value === 'boolean') {
-      return BooleanValue.of(value);
-    } else if (typeof value === 'string') {
-      return new StringValue(value);
-    } else if (value instanceof Date) {
-      return new TimestampValue(Timestamp.fromDate(value));
-    } else if (value instanceof Timestamp) {
+  private parseScalarValue(input: unknown, context: ParseContext): api.Value {
+    if (input === null) {
+      return { nullValue: 'NULL_VALUE' };
+    } else if (typeof input === 'number') {
+      return this.serializer.toNumber(input);
+    } else if (typeof input === 'boolean') {
+      return { booleanValue: input };
+    } else if (typeof input === 'string') {
+      return { stringValue: '' + input };
+    } else if (input instanceof Date) {
+      const timestamp = Timestamp.fromDate(input);
+      return { timestampValue: this.serializer.toTimestamp(timestamp) };
+    } else if (input instanceof Timestamp) {
       // Firestore backend truncates precision down to microseconds. To ensure
       // offline mode works the same with regards to truncation, perform the
       // truncation immediately without waiting for the backend to do that.
-      return new TimestampValue(
-        new Timestamp(
-          value.seconds,
-          Math.floor(value.nanoseconds / 1000) * 1000
-        )
+      const timestamp = new Timestamp(
+        input.seconds,
+        Math.floor(input.nanoseconds / 1000) * 1000
       );
-    } else if (value instanceof GeoPoint) {
-      return new GeoPointValue(value);
-    } else if (value instanceof Blob) {
-      return new BlobValue(value._byteString);
-    } else if (value instanceof DocumentKeyReference) {
-      return new RefValue(value.databaseId, value.key);
+      return { timestampValue: this.serializer.toTimestamp(timestamp) };
+    } else if (input instanceof GeoPoint) {
+      return {
+        geoPointValue: {
+          latitude: input.latitude,
+          longitude: input.longitude
+        }
+      };
+    } else if (input instanceof Blob) {
+      return { bytesValue: this.serializer.toBytes(input) };
+    } else if (input instanceof DocumentKeyReference) {
+      return {
+        referenceValue: this.serializer.toResourceName(
+          input.databaseId,
+          input.key.path
+        )
+      };
     } else {
       throw context.createError(
-        `Unsupported field value: ${valueDescription(value)}`
+        `Unsupported field value: ${valueDescription(input)}`
       );
     }
   }
@@ -742,7 +739,7 @@ export class UserDataReader {
   private parseArrayTransformElements(
     methodName: string,
     elements: unknown[]
-  ): FieldValue[] {
+  ): api.Value[] {
     return elements.map((element, i) => {
       // Although array transforms are used with writes, the actual elements
       // being unioned or removed are not considered writes since they cannot

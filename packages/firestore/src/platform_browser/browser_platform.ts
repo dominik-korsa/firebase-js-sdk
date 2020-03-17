@@ -27,6 +27,7 @@ import { WebChannelConnection } from './webchannel_connection';
 
 export class BrowserPlatform implements Platform {
   readonly base64Available: boolean;
+  readonly usesProto3Json = true;
 
   constructor() {
     this.base64Available = typeof atob !== 'undefined';

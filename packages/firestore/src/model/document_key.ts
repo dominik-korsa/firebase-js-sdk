@@ -18,6 +18,7 @@
 import { assert } from '../util/assert';
 
 import { ResourcePath } from './path';
+import { DatabaseId } from '../core/database_info';
 
 export class DocumentKey {
   constructor(readonly path: ResourcePath) {
@@ -26,6 +27,10 @@ export class DocumentKey {
       'Invalid DocumentKey with an odd number of segments: ' +
         path.toArray().join('/')
     );
+  }
+
+  static fromName(name: string): DocumentKey {
+    return new DocumentKey(ResourcePath.fromString(name).popFirst(5));
   }
 
   /** Returns true if the document is in the specified collectionId. */
@@ -40,6 +45,12 @@ export class DocumentKey {
     return (
       other !== null && ResourcePath.comparator(this.path, other.path) === 0
     );
+  }
+
+  toName(databaseId: DatabaseId): string {
+    return `projects/${databaseId.projectId}/databases/${
+      databaseId.database
+    }/documents/${this.path.canonicalString()}`;
   }
 
   toString(): string {
@@ -59,21 +70,10 @@ export class DocumentKey {
   /**
    * Creates and returns a new document key with the given segments.
    *
-   * @param path The segments of the path to the document
+   * @param segments The segments of the path to the document
    * @return A new instance of DocumentKey
    */
   static fromSegments(segments: string[]): DocumentKey {
     return new DocumentKey(new ResourcePath(segments.slice()));
-  }
-
-  /**
-   * Creates and returns a new document key using '/' to split the string into
-   * segments.
-   *
-   * @param path The slash-separated path string to the document
-   * @return A new instance of DocumentKey
-   */
-  static fromPathString(path: string): DocumentKey {
-    return new DocumentKey(ResourcePath.fromString(path));
   }
 }

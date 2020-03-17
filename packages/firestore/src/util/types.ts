@@ -54,7 +54,7 @@ export const isInteger: (value: unknown) => boolean =
 /**
  * Returns whether a variable is either undefined or null.
  */
-export function isNullOrUndefined(value: unknown): boolean {
+export function isNullOrUndefined(value: unknown): value is null | undefined {
   return value === null || value === undefined;
 }
 
@@ -63,11 +63,18 @@ export function isNullOrUndefined(value: unknown): boolean {
  * @param value The value to test for being an integer and in the safe range
  */
 export function isSafeInteger(value: unknown): boolean {
-  return (
-    isInteger(value) &&
-    (value as number) <= MAX_SAFE_INTEGER &&
-    (value as number) >= MIN_SAFE_INTEGER
-  );
+  // Implemented based on Object.is() polyfill from
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is
+  if (value === -0) {
+    // +0 != -0
+    return 1 / value === 1 / 0;
+  } else {
+    return (
+      isInteger(value) &&
+      (value as number) <= MAX_SAFE_INTEGER &&
+      (value as number) >= MIN_SAFE_INTEGER
+    );
+  }
 }
 
 /**

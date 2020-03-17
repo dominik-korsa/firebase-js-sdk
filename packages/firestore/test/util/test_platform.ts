@@ -219,6 +219,10 @@ export class TestPlatform implements Platform {
     this.mockWindow = new FakeWindow(this.mockStorage);
   }
 
+  get usesProto3Json(): boolean {
+    return this.basePlatform.usesProto3Json;
+  }
+
   get document(): Document | null {
     // FakeWindow doesn't support full Document interface.
     return this.mockDocument as any; // eslint-disable-line @typescript-eslint/no-explicit-any
