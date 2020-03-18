@@ -56,7 +56,7 @@ export interface Platform {
    * True if timestamps, bytes and numbers are represented in Proto3 JSON
    * format (in-mmemory and on the wire)
    */
-  readonly usesProto3Json: boolean;
+  readonly useProto3Json: boolean;
 }
 
 /**

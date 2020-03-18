@@ -105,7 +105,7 @@ const preConverter = (input: unknown): unknown => {
 };
 
 export function testUserDataWriter(useProto3Json?: boolean): UserDataWriter {
-  useProto3Json = useProto3Json ?? PlatformSupport.getPlatform().usesProto3Json;
+  useProto3Json = useProto3Json ?? PlatformSupport.getPlatform().useProto3Json;
   return new UserDataWriter(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     null as any,
@@ -115,7 +115,7 @@ export function testUserDataWriter(useProto3Json?: boolean): UserDataWriter {
 }
 
 export function testUserDataReader(useProto3Json?: boolean): UserDataReader {
-  useProto3Json = useProto3Json ?? PlatformSupport.getPlatform().usesProto3Json;
+  useProto3Json = useProto3Json ?? PlatformSupport.getPlatform().useProto3Json;
   return new UserDataReader(
     new JsonProtoSerializer(new DatabaseId('test-project'), { useProto3Json }),
     preConverter

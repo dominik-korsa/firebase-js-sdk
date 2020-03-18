@@ -219,8 +219,8 @@ export class TestPlatform implements Platform {
     this.mockWindow = new FakeWindow(this.mockStorage);
   }
 
-  get usesProto3Json(): boolean {
-    return this.basePlatform.usesProto3Json;
+  get useProto3Json(): boolean {
+    return this.basePlatform.useProto3Json;
   }
 
   get document(): Document | null {
