@@ -32,6 +32,9 @@ export function isServerTimestamp(value: api.Value | null): boolean {
   return type === SERVER_TIMESTAMP_SENTINEL;
 }
 
+/**
+ * Creates a new ServerTimestamp proto value (using the internal format).
+ */
 export function serverTimestamp(
   localWriteTime: Timestamp,
   previousValue: api.Value | null
@@ -63,7 +66,6 @@ export function serverTimestamp(
  * Preserving the previous values allows the user to display the last resoled
  * value until the backend responds with the timestamp.
  */
-
 export function getPreviousValue(value: api.Value): api.Value | null {
   const previousValue = value.mapValue!.fields![PREVIOUS_VALUE_KEY];
 

@@ -55,8 +55,6 @@ import {
   SpecWriteFailure
 } from './spec_test_runner';
 import { PlatformSupport } from '../../../src/platform/platform';
-import { UserDataWriter } from '../../../src/api/user_data_writer';
-import { DatabaseId } from '../../../src/core/database_info';
 
 const userDataWriter = testUserDataWriter();
 

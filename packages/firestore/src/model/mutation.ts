@@ -119,7 +119,7 @@ export class MutationResult {
   ) {}
 }
 
-export enum MutationType {
+export const enum MutationType {
   Set,
   Patch,
   Transform,

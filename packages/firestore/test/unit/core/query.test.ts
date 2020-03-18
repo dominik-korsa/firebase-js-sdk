@@ -724,7 +724,7 @@ describe('Query', () => {
     expect(query.matchesAllDocuments()).to.be.false;
   });
 
-  function assertCanonicalId(query: Query, expectedCanonicalId: string) {
+  function assertCanonicalId(query: Query, expectedCanonicalId: string) : void {
     expect(query.toTarget().canonicalId()).to.equal(expectedCanonicalId);
   }
 });

@@ -36,7 +36,7 @@ import {
   typeOrder
 } from '../model/values';
 
-export enum LimitType {
+export const enum LimitType {
   First = 'F',
   Last = 'L'
 }

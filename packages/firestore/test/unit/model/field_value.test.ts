@@ -18,11 +18,10 @@
 import * as api from '../../../src/protos/firestore_proto_api';
 
 import { expect } from 'chai';
-import { GeoPoint } from '../../../src/api/geo_point';
 import { ObjectValue, TypeOrder } from '../../../src/model/field_value';
 import { typeOrder } from '../../../src/model/values';
-import * as typeUtils from '../../../src/util/types';
-import { blob, field, mask, wrap, wrapObject } from '../../util/helpers';
+import { wrap, wrapObject , field, mask } from '../../util/helpers';
+
 
 describe('FieldValue', () => {
   it('can extract fields', () => {

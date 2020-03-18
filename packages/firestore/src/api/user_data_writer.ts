@@ -36,7 +36,6 @@ import {
 import { fail } from '../util/assert';
 import { GeoPoint } from './geo_point';
 import { JsonProtoSerializer } from '../remote/serializer';
-import { PlatformSupport } from '../platform/platform';
 
 export type ServerTimestampBehavior = 'estimate' | 'previous' | 'none';
 
